@@ -177,6 +177,10 @@ class APA102:
       return len(self.leds)
 
 
+    def __getitem__(self, key):
+        return self.leds[key]
+
+
     def __setitem__(self, key, item):
         """ Allows for setting lights using array syntax:
         strip[12] = Pixel(255, 255, 0, 50) # 50% Brightness yellow
