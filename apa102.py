@@ -176,6 +176,23 @@ class APA102:
     def num_led(self):
       return len(self.leds)
 
+
+    def __setitem__(self, key, item):
+        """ Allows for setting lights using array syntax:
+        strip[12] = Pixel(255, 255, 0, 50) # 50% Brightness yellow
+        or
+        strip[12] = (255, 255, 0) # 100% Brightness yellow
+        """
+        if isinstance(item, Pixel):
+            self.leds[key] = item
+        elif len(item) == 4:
+            self.leds[key] = Pixel(*item)
+        elif len(item) == 3:
+            self.leds[key] = Pixel(*item, brightness=100)
+        else:
+            raise ValueError('unknown type for Pixel: {}'.format(item))
+
+
     def set_pixel(self, led_num, red, green, blue, bright_percent=100):
         """Sets the color of one pixel in the LED stripe.
 
