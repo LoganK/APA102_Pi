@@ -1,7 +1,7 @@
 """This is the main driver module for APA102 LEDs"""
-import Adafruit_GPIO as GPIO
-import Adafruit_GPIO.SPI as SPI
 from math import ceil
+
+import debug
 
 RGB_MAP = { 'rgb': [3, 2, 1], 'rbg': [3, 1, 2], 'grb': [2, 3, 1],
             'gbr': [2, 1, 3], 'brg': [1, 3, 2], 'bgr': [1, 2, 3] }
@@ -86,11 +86,16 @@ class APA102:
 
         self.leds = [self.LED_START,0,0,0] * self.num_led # Pixel buffer
         
-        # MOSI 10 and SCLK 11 is hardware SPI, which needs to be set-up differently
-        if mosi == 10 and sclk == 11:
-        	self.spi = SPI.SpiDev(0, 0, max_speed_hz) # Bus 0, chip select 0
+        if mosi is None:
+            self.spi = debug.DummySPI(self.rgb)
         else:
-        	self.spi = SPI.BitBang(GPIO.get_platform_gpio(), sclk, mosi)
+            import Adafruit_GPIO.SPI as SPI
+            # MOSI 10 and SCLK 11 is hardware SPI, which needs to be set-up differently
+            if mosi == 10 and sclk == 11:
+                self.spi = SPI.SpiDev(0, 0, max_speed_hz) # Bus 0, chip select 0
+            else:
+                import Adafruit_GPIO as GPIO
+                self.spi = SPI.BitBang(GPIO.get_platform_gpio(), sclk, mosi)
 
     def clock_start_frame(self):
         """Sends a start frame to the LED strip.
