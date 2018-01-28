@@ -1,10 +1,51 @@
 """This is the main driver module for APA102 LEDs"""
 from math import ceil
+from collections import namedtuple
 
 import debug
 
 RGB_MAP = { 'rgb': [3, 2, 1], 'rbg': [3, 1, 2], 'grb': [2, 3, 1],
             'gbr': [2, 1, 3], 'brg': [1, 3, 2], 'bgr': [1, 2, 3] }
+
+# Red, Green, Blue are supposed to be in the range 0--255. Brightness is in the
+# range 0--100.
+Pixel = namedtuple('Pixel', 'red green blue brightness')
+Pixel.RED = Pixel(255, 0, 0, 100)
+Pixel.YELLOW = Pixel(255, 255, 0, 100)
+Pixel.GREEN = Pixel(0, 255, 0, 100)
+Pixel.CYAN = Pixel(0, 255, 255, 100)
+Pixel.BLUE = Pixel(0, 0, 255, 100)
+Pixel.MAGENTA = Pixel(255, 0, 255, 100)
+Pixel.WHITE = Pixel(255, 255, 255, 100)
+
+class APA102Cmd:
+  """Helper class to convert Pixel instance to an APA102 command.
+  """
+  LED_START = 0b11100000 # Three "1" bits, followed by 5 brightness bits
+  BRIGHTNESS = 0b00011111
+
+  def __init__(self, rgb_map, max_brightness):
+    self.rgb_map = rgb_map
+    self.max_brightness = max(max_brightness, APA102Cmd.BRIGHTNESS)
+
+  def to_cmd(self, pixel):
+    if not isinstance(pixel, Pixel):
+      raise TypeError("expected Pixel")
+
+    brightness = int(ceil(pixel.brightness*self.max_brightness/100.0))
+
+    # LED startframe is three "1" bits, followed by 5 brightness bits
+    ledstart = (brightness & 0b00011111) | self.LED_START
+
+    cmd = [ledstart, 0, 0, 0]
+
+    # Note that rgb_map is 1-indexed for historial reasons, but is convenient here.
+    cmd[self.rgb_map[0]] = pixel.red
+    cmd[self.rgb_map[1]] = pixel.green
+    cmd[self.rgb_map[2]] = pixel.blue
+
+    return cmd
+
 
 class APA102:
     """
@@ -66,28 +107,16 @@ class APA102:
     zeroes to LED 1 as long as it takes for the last color frame to make it
     down the line to the last LED.
     """
-    # Constants
-    MAX_BRIGHTNESS = 31 # Safeguard: Max. brightness that can be selected. 
-    LED_START = 0b11100000 # Three "1" bits, followed by 5 brightness bits
-
-    def __init__(self, num_led, global_brightness=MAX_BRIGHTNESS,
+    def __init__(self, num_led, global_brightness=100,
                  order='rgb', mosi=10, sclk=11, max_speed_hz=8000000):
-        """Initializes the library.
-        
-        """
-        self.num_led = num_led  # The number of LEDs in the Strip
-        order = order.lower()
-        self.rgb = RGB_MAP.get(order, RGB_MAP['rgb'])
-        # Limit the brightness to the maximum if it's set higher
-        if global_brightness > self.MAX_BRIGHTNESS:
-            self.global_brightness = self.MAX_BRIGHTNESS
-        else:
-            self.global_brightness = global_brightness
+        """Initializes the library."""
 
-        self.leds = [self.LED_START,0,0,0] * self.num_led # Pixel buffer
-        
+        rgb_map = RGB_MAP[order.lower()]
+        self.pixel_cmd = APA102Cmd(rgb_map, global_brightness)
+        self.leds = [Pixel(0, 0, 0, 0) for n in range(num_led)]
+
         if mosi is None:
-            self.spi = debug.DummySPI(self.rgb)
+            self.spi = debug.DummySPI(rgb_map)
         else:
             import Adafruit_GPIO.SPI as SPI
             # MOSI 10 and SCLK 11 is hardware SPI, which needs to be set-up differently
@@ -140,11 +169,12 @@ class APA102:
 
     def clear_strip(self):
         """ Turns off the strip and shows the result right away."""
-
-        for led in range(self.num_led):
-            self.set_pixel(led, 0, 0, 0)
+        self.leds = [Pixel(0, 0, 0, 0) for n in range(len(self.leds))]
         self.show()
 
+    @property
+    def num_led(self):
+      return len(self.leds)
 
     def set_pixel(self, led_num, red, green, blue, bright_percent=100):
         """Sets the color of one pixel in the LED stripe.
@@ -153,26 +183,10 @@ class APA102:
         written to the pixel buffer. Colors are passed individually.
         If brightness is not set the global brightness setting is used.
         """
-        if led_num < 0:
-            return  # Pixel is invisible, so ignore
-        if led_num >= self.num_led:
-            return  # again, invisible
+        if led_num < 0 or led_num >= self.num_led:
+            raise ValueError('attempt to set invalid LED: {}'.format(led_num))
 
-        # Calculate pixel brightness as a percentage of the
-        # defined global_brightness. Round up to nearest integer
-        # as we expect some brightness unless set to 0
-        brightness = ceil(bright_percent*self.global_brightness/100.0)
-        brightness = int(brightness)
-
-        # LED startframe is three "1" bits, followed by 5 brightness bits
-        ledstart = (brightness & 0b00011111) | self.LED_START
-
-        start_index = 4 * led_num
-        self.leds[start_index] = ledstart
-        self.leds[start_index + self.rgb[0]] = red
-        self.leds[start_index + self.rgb[1]] = green
-        self.leds[start_index + self.rgb[2]] = blue
-
+        self.leds[led_num] = Pixel(red, green, blue, bright_percent)
 
     def set_pixel_rgb(self, led_num, rgb_color, bright_percent=100):
         """Sets the color of one pixel in the LED stripe.
@@ -194,7 +208,7 @@ class APA102:
         the specified number of positions. The number could be negative,
         which means rotating in the opposite direction.
         """
-        cutoff = 4 * (positions % self.num_led)
+        cutoff = positions % self.num_led
         self.leds = self.leds[cutoff:] + self.leds[:cutoff]
 
 
@@ -204,9 +218,11 @@ class APA102:
         Todo: More than 1024 LEDs requires more than one xfer operation.
         """
         self.clock_start_frame()
-        # xfer2 kills the list, unfortunately. So it must be copied first
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
-        self.spi.write(list(self.leds))
+        cmds = []
+        for led in self.leds:
+          cmds.extend(self.pixel_cmd.to_cmd(led))
+        self.spi.write(cmds)
         self.clock_end_frame()
 
 
