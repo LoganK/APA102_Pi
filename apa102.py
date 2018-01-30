@@ -306,9 +306,9 @@ class APA102:
 
         if wheel_pos > 255:
             wheel_pos = 255 # Safeguard
-        if wheel_pos < 85:  # Green -> Red
+        if wheel_pos <= 85:  # Green -> Red
             return self.combine_color(wheel_pos * 3, 255 - wheel_pos * 3, 0)
-        if wheel_pos < 170:  # Red -> Blue
+        if wheel_pos <= 170:  # Red -> Blue
             wheel_pos -= 85
             return self.combine_color(255 - wheel_pos * 3, 0, wheel_pos * 3)
         # Blue -> Green
