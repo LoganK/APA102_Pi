@@ -1,6 +1,7 @@
 """This is the main driver module for APA102 LEDs"""
 from math import ceil
 from collections import namedtuple
+import itertools
 
 import debug
 
@@ -106,16 +107,34 @@ class APA102:
     information is still with person 2. Essentially the driver sends additional
     zeroes to LED 1 as long as it takes for the last color frame to make it
     down the line to the last LED.
+
+    Params:
+      led_order - If set, allow the use of a logical order that doesn't match
+        the physical strip given as a sequence of (first, last) ranges. As a
+        compex example, if your strips were connected as:
+        5-6-7-8-0-1-2-3-12-11-10-9
+        then you could set led_order=((5, 8), (0, 3), (12, 9))
+        Tip: runcolorcycle.py can be useful to verify you have these values correct.
     """
-    def __init__(self, num_led, global_brightness=100,
-                 order='rgb', mosi=10, sclk=11, max_speed_hz=8000000):
+    def __init__(self,
+                 num_led,
+                 global_brightness=100,
+                 order='rgb',
+                 mosi=10,
+                 sclk=11,
+                 max_speed_hz=8000000,
+                 led_order=None):
         """Initializes the library."""
 
         rgb_map = RGB_MAP[order.lower()]
         self.pixel_cmd = APA102Cmd(rgb_map, global_brightness)
         self.leds = [Pixel(0, 0, 0, 0) for n in range(num_led)]
+        self.led_order = led_order
+        self._assert_led_order()
 
-        if mosi is None:
+        if mosi is None: # Debug output
+            # Reset leds_seq so the terminal output makes sense.
+            self.led_order = None
             self.spi = debug.DummySPI(rgb_map)
         else:
             import Adafruit_GPIO.SPI as SPI
@@ -125,6 +144,14 @@ class APA102:
             else:
                 import Adafruit_GPIO as GPIO
                 self.spi = SPI.BitBang(GPIO.get_platform_gpio(), sclk, mosi)
+
+    def _assert_led_order(self):
+        """Raise a ValueError if the given led_order isn't correct."""
+
+        found = set(self.order_iter())
+        need = set(range(len(self.leds)))
+        if found != need:
+            raise ValueError('led_order has gap and/or extra: {}'.format(need.symmetric_difference(found)))
 
     def clock_start_frame(self):
         """Sends a start frame to the LED strip.
@@ -233,6 +260,21 @@ class APA102:
         self.leds = self.leds[cutoff:] + self.leds[:cutoff]
 
 
+    def order_iter(self):
+        """Convert a user sequence of led_order tuples to a linear order."""
+
+        if self.led_order is None:
+            return range(self.num_led)
+
+        order = []
+        for s in led_order:
+            if s[0] < s[1]:
+                order.append(range(s[0], s[1] + 1, 1))
+            else:
+                order.append(range(s[1], s[0] - 1, -1))
+
+        return itertools.chain(*order)
+
     def show(self):
         """Sends the content of the pixel buffer to the strip.
 
@@ -241,8 +283,8 @@ class APA102:
         self.clock_start_frame()
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
         cmds = []
-        for led in self.leds:
-          cmds.extend(self.pixel_cmd.to_cmd(led))
+        for led_i in self.order_iter():
+            cmds.extend(self.pixel_cmd.to_cmd(self.leds[led_i]))
         self.spi.write(cmds)
         self.clock_end_frame()
 
