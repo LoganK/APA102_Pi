@@ -190,8 +190,7 @@ class APA102:
         been sent as part of "clockEndFrame".
         """
         # Round up num_led/2 bits (or num_led/16 bytes)
-        for _ in range((self.num_led + 15) // 16):
-            self.spi.write([0x00])
+        self.spi.write([0x00] * ceil(self.num_led / 16))
 
 
     def clear_strip(self):
