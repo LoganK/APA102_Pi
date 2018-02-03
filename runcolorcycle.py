@@ -58,14 +58,26 @@ if __name__ == '__main__':
     print('A Larson Scanner, a fire, and red alert')
     MY_CYCLE = ColorCycleTemplate(pause_value=0.02, num_steps_per_cycle=60, num_cycles=5,
                                   **options)
-    MY_CYCLE.append_updater(colorschemes.blank_updater) # The scanners don't assume blank-to-start
-    num_updaters = 3
+    num_updaters = 5
     sec_width = args.num_led // num_updaters
     sec_ranges = list(zip(range(0, args.num_led, sec_width), range(sec_width-1, args.num_led, sec_width)))
     sec_ranges[-1] = (sec_ranges[-1][0], args.num_led-1) # Make sure we get them all
     MY_CYCLE.append_updater(colorschemes.create_larson(*sec_ranges.pop(0), width=8))
     MY_CYCLE.append_updater(colorschemes.create_fire(*sec_ranges.pop(0)))
-    MY_CYCLE.append_updater(colorschemes.create_red_alert(*sec_ranges.pop(0)))
+
+
+    # Combine a solid color and a fader to create the red alert pattern
+    for delay_pct in (0, 0.2, 0.4):
+        range = sec_ranges.pop(0)
+        # Reset to black at the start of the sequence
+        MY_CYCLE.append_updater(colorschemes.create_solid(*range, pixel=Pixel.BLACK))
+
+        # Cascade the red alert fades
+        MY_CYCLE.append_updater(colorschemes.add_delay(delay_pct,
+            colorschemes.create_solid(*range, pixel=Pixel.RED),
+            colorschemes.create_exp_fade(*range, hold_pct=0.4)))
+
+
     MY_CYCLE.start()
 
     print('Morse codes')

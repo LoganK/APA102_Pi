@@ -1,6 +1,6 @@
 """This module contains a few concrete colour cycles to play with"""
 
-from math import ceil
+from math import ceil, floor, sqrt
 from random import randint
 
 from colorcycletemplate import ColorCycleTemplate
@@ -108,12 +108,40 @@ class Rainbow(ColorCycleTemplate):
         return 1 # All pixels are set in the buffer, so repaint the strip now
 
 
+def add_delay(delay_pct, *updaters):
+    """A meta-updater that will delay an effect. Used by wrapping an updater:
+        add_delay(0.1, create_solid(0, 10, Pixel.RED)) # Show red 10% into the cycle
+    """
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        delay = round(delay_pct * num_steps_per_cycle)
+        if current_step < delay:
+            return 0
+        return sum((u(strip, num_led, num_steps_per_cycle, current_step - delay, current_cycle)
+                    for u in updaters))
+    return update
+
+
 def blank_updater(strip, num_led, num_steps_per_cycle, current_step,
           current_cycle):
     """A helper updater that simply clears the strip."""
 
     strip.blank()
     return 1 # Repaint
+
+
+def create_solid(start, end, pixel):
+    """A helper updater that simply sets a solid color."""
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        if current_step != 0:
+            return 0
+        for i in range(start, end+1):
+            strip[i] = pixel
+        return 1 # Repaint
+    return update
 
 
 def create_larson(start, end, width):
@@ -126,7 +154,7 @@ def create_larson(start, end, width):
     direction = 1
     def update(strip, num_led, num_steps_per_cycle, current_step,
                current_cycle):
-        nonlocal width, b_step, led, direction
+        nonlocal led, direction
         led += direction
         if led == end + width:
             direction = -1
@@ -135,6 +163,8 @@ def create_larson(start, end, width):
             direction = 1
             led = start
         bright = 100
+        for i in range(start, end+1):
+            strip[i] = Pixel.BLACK
         for i in range(led, led + (-direction * width), -direction):
             if start <= i <= end:
                 strip[i] = Pixel(255, 0, 0, bright)
@@ -263,5 +293,52 @@ def create_morse(start, end, color, msg):
                current_cycle):
         for i in range(start, end+1):
             strip[i] = msg_lamp[(i+current_step)%len(msg_lamp)]
+        return 1 # Repaint
+    return update
+
+
+def create_lin_fade(start, end, hold_pct=0.1, direction=1):
+    """A linear brightness fader.
+    Params:
+        hold_pct - (Range 0--1) The percent of the cycle to hold at the end brightness.
+        direction - 1 to fade up, -1 to fade down
+    """
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        last_step = num_steps_per_cycle - ceil(hold_pct * num_steps_per_cycle)
+        if current_step > last_step:
+            return 0
+        brightness = round(100 * current_step / last_step)
+        if direction != 1:
+            # Fade down
+            brightness = 100 - brightness
+        for i in range(start, end+1):
+            # Copy all the colors and change brightness.
+            strip[i] = Pixel(*strip[i][0:3], brightness=brightness)
+        return 1 # Repaint
+    return update
+
+def create_exp_fade(start, end, exp=0.5, hold_pct=0.1, direction=1):
+    """An exponential brightness fader.
+    Params:
+        exp - The exponentiation. Lower numbers result in faster time to bright.
+        hold_pct - (Range 0--1) The percent of the cycle to hold at the end brightness.
+        direction - 1 to fade up, -1 to fade down
+    """
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        last_step = num_steps_per_cycle - ceil(hold_pct * num_steps_per_cycle)
+        if current_step > last_step:
+            return 0
+        scale = 100 / (last_step**exp)
+        brightness = floor(scale * (current_step**exp))
+        if direction != 1:
+            # Fade down
+            brightness = 100 - brightness
+        for i in range(start, end+1):
+            # Copy all the colors and change brightness.
+            strip[i] = Pixel(*strip[i][0:3], brightness=brightness)
         return 1 # Repaint
     return update
