@@ -139,7 +139,7 @@ class APA102:
 
         rgb_map = RGB_MAP[order.lower()]
         self.pixel_cmd = APA102Cmd(rgb_map, global_brightness)
-        self.leds = [Pixel(0, 0, 0, 0) for n in range(num_led)]
+        self.leds = [Pixel.BLACK] * num_led
         self.led_order = led_order
         self._assert_led_order()
 
@@ -204,10 +204,16 @@ class APA102:
         self.spi.write([0x00] * ceil(self.num_led / 16))
 
 
+    def blank(self):
+        """ Turns off the strip. """
+        self.leds = [Pixel.BLACK] * self.num_led
+
+
     def clear_strip(self):
         """ Turns off the strip and shows the result right away."""
-        self.leds = [Pixel(0, 0, 0, 0) for n in range(len(self.leds))]
+        self.blank()
         self.show()
+
 
     @property
     def num_led(self):
