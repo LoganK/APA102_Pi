@@ -260,6 +260,11 @@ class APA102:
         Colors are passed combined (3 bytes concatenated)
         If brightness is not set the global brightness setting is used.
         """
+        if isinstance(rgb_color, str):
+            ln = len(rgb_color)
+            return self.set_pixel(led_num,
+                    *(int(rgb_color[i:i + ln // 3], 16) for i in range(0, ln, ln // 3)),
+                    bright_percent=bright_percent)
         self.set_pixel(led_num, (rgb_color & 0xFF0000) >> 16,
                        (rgb_color & 0x00FF00) >> 8, rgb_color & 0x0000FF,
                         bright_percent)
