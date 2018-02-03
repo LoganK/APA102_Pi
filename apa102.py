@@ -170,7 +170,7 @@ class APA102:
         This method clocks out a start frame, telling the receiving LED
         that it must update its own color now.
         """
-        self.spi.write([0] * 4)  # Start frame, 32 zero bits
+        return [0] * 4  # Start frame, 32 zero bits
 
 
     def clock_end_frame(self):
@@ -201,7 +201,7 @@ class APA102:
         been sent as part of "clockEndFrame".
         """
         # Round up num_led/2 bits (or num_led/16 bytes)
-        self.spi.write([0x00] * ceil(self.num_led / 16))
+        return [0x00] * ceil(self.num_led / 16)
 
 
     def blank(self):
@@ -292,17 +292,17 @@ class APA102:
         return itertools.chain(*order)
 
     def show(self):
-        """Sends the content of the pixel buffer to the strip.
+        """Sends the content of the pixel buffer to the strip."""
 
-        Todo: More than 1024 LEDs requires more than one xfer operation.
-        """
-        self.clock_start_frame()
+        cmds = self.clock_start_frame()
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
-        cmds = []
         for led_i in self.order_iter():
             cmds.extend(self.pixel_cmd.to_cmd(self.leds[led_i]))
-        self.spi.write(cmds)
-        self.clock_end_frame()
+        cmds.extend(self.clock_end_frame())
+
+        for i in range(0, len(cmds), 4096):
+            sub_cmd = cmds[i:i+4096]
+            self.spi.write(sub_cmd)
 
 
     def __enter__(self):

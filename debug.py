@@ -25,7 +25,7 @@ class DummySPI():
         print(DummySPI.RESET_COLOR + DummySPI.HIDE_CURSOR, end='', flush=True)
 
         # Slow down so we don't simply run at CPU speeds.
-        time.sleep(0.001)
+        time.sleep(0.005)
 
     def close(self):
         # Output a newline and reset to indicate this strand is done.
