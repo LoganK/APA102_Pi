@@ -77,14 +77,17 @@ class ColorCycleTemplate:
             self.init(strip, self.num_led) # Call the subclasses init method
             strip.show()
             current_cycle = 0
+            next_time = time.time()
             while True:  # Loop forever
                 for current_step in range (self.num_steps_per_cycle):
                     need_repaint = self.update(strip, self.num_led,
                                                self.num_steps_per_cycle,
                                                current_step, current_cycle)
+                    time.sleep(max(0, next_time-time.time()))
+                    next_time += self.pause_value
                     if need_repaint:
                         strip.show() # repaint if required
-                    time.sleep(self.pause_value) # Pause until the next step
+                time.sleep(max(0, next_time-time.time())) # Final hold
                 current_cycle += 1
                 if self.num_cycles != -1:
                     if current_cycle >= self.num_cycles:
