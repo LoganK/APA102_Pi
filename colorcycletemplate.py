@@ -28,6 +28,7 @@ class ColorCycleTemplate:
         self.order = order # Strip colour ordering
         self.mosi = mosi
         self.sclk = sclk
+        self.updaters = []
 
     def init(self, strip, num_led):
         """This method is called to initialize a color program.
@@ -59,6 +60,13 @@ class ColorCycleTemplate:
 
         raise NotImplementedError("Please implement the update() method")
 
+
+    def append_updater(self, updater):
+        """This method appends an update function that works identically to update."""
+
+        self.updaters.append(updater)
+
+
     def cleanup(self, strip):
         """Cleanup method."""
         self.shutdown(strip, self.num_led)
@@ -68,6 +76,11 @@ class ColorCycleTemplate:
 
     def start(self):
         """This method does the actual work."""
+
+        # If there are no updaters, then revert to the old inheritence-based behavior.
+        if len(self.updaters) == 0:
+            self.updaters.append(self.update)
+
         try:
             strip = apa102.APA102(num_led=self.num_led,
                                   global_brightness=self.global_brightness,
@@ -80,9 +93,10 @@ class ColorCycleTemplate:
             next_time = time.time()
             while True:  # Loop forever
                 for current_step in range (self.num_steps_per_cycle):
-                    need_repaint = self.update(strip, self.num_led,
-                                               self.num_steps_per_cycle,
-                                               current_step, current_cycle)
+                    need_repaint = sum((
+                        update(strip, self.num_led, self.num_steps_per_cycle,
+                               current_step, current_cycle)
+                        for update in self.updaters))
                     time.sleep(max(0, next_time-time.time()))
                     next_time += self.pause_value
                     if need_repaint:

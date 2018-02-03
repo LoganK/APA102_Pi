@@ -105,3 +105,11 @@ class Rainbow(ColorCycleTemplate):
             pixel_color = strip.wheel(led_index_rounded_wrapped)
             strip.set_pixel_rgb(i, pixel_color)
         return 1 # All pixels are set in the buffer, so repaint the strip now
+
+
+def blank_updater(strip, num_led, num_steps_per_cycle, current_step,
+          current_cycle):
+    """A helper updater that simply clears the strip."""
+
+    strip.blank()
+    return 1 # Repaint
