@@ -305,6 +305,13 @@ class APA102:
         self.clock_end_frame()
 
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.clear_strip()
+        self.cleanup()
+
     def cleanup(self):
         """Release the SPI device; Call this method at the end"""
 
