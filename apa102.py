@@ -20,21 +20,31 @@ Pixel.MAGENTA = Pixel(255, 0, 255, 100)
 Pixel.BLACK = Pixel(0, 0, 0, 0)
 Pixel.WHITE = Pixel(255, 255, 255, 100)
 
+def clamp(val, min_val, max_val):
+    """Return the value clamped within the range [min_val, max_val]."""
+    return max(min_val, min(max_val, val))
+
 class APA102Cmd:
   """Helper class to convert Pixel instance to an APA102 command.
   """
   LED_START = 0b11100000 # Three "1" bits, followed by 5 brightness bits
   BRIGHTNESS = 0b00011111
 
+  @staticmethod
+  def bright_percent(pct):
+      """ Scales the given percent to a value within the hardware range. """
+      ret = clamp(ceil(pct * APA102Cmd.BRIGHTNESS / 100.0), 0, APA102Cmd.BRIGHTNESS)
+      return ret
+
   def __init__(self, rgb_map, max_brightness):
     self.rgb_map = rgb_map
-    self.max_brightness = max(max_brightness, APA102Cmd.BRIGHTNESS)
+    self.max_brightness = max_brightness
 
   def to_cmd(self, pixel):
     if not isinstance(pixel, Pixel):
       raise TypeError("expected Pixel")
 
-    brightness = int(ceil(pixel.brightness*self.max_brightness/100.0))
+    brightness = APA102Cmd.bright_percent(round(pixel.brightness * self.max_brightness / 100))
 
     # LED startframe is three "1" bits, followed by 5 brightness bits
     ledstart = (brightness & 0b00011111) | self.LED_START
@@ -42,9 +52,9 @@ class APA102Cmd:
     cmd = [ledstart, 0, 0, 0]
 
     # Note that rgb_map is 1-indexed for historial reasons, but is convenient here.
-    cmd[self.rgb_map[0]] = pixel.red
-    cmd[self.rgb_map[1]] = pixel.green
-    cmd[self.rgb_map[2]] = pixel.blue
+    cmd[self.rgb_map[0]] = clamp(pixel.red, 0, 255)
+    cmd[self.rgb_map[1]] = clamp(pixel.green, 0, 255)
+    cmd[self.rgb_map[2]] = clamp(pixel.blue, 0, 255)
 
     return cmd
 
