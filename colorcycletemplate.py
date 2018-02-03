@@ -11,6 +11,8 @@ class ColorCycleTemplate:
        Params:
          mosi, sclk - Hardware SPI uses BCM 10 & 11. Change these values for
            bit bang mode. MOSI = 23, SCLK = 24 for Pimoroni Phat Beat or Blinkt!
+         duration_s - If positive, terminate at the given time even if there are
+           still remaining cycles.
     """
     def __init__(self,
                  num_led,
@@ -19,12 +21,14 @@ class ColorCycleTemplate:
                  num_cycles = -1,
                  global_brightness = 100,
                  order = 'rbg',
+                 duration_s=-1,
                  mosi = 10, sclk = 11):
         self.num_led = num_led # The number of LEDs in the strip
         self.pause_value = pause_value # How long to pause between two runs
         self.num_steps_per_cycle = num_steps_per_cycle # Steps in one cycle.
         self.num_cycles = num_cycles # How many times will the program run
         self.global_brightness = global_brightness # Brightness of the strip
+        self.duration_s = duration_s
         self.order = order # Strip colour ordering
         self.mosi = mosi
         self.sclk = sclk
@@ -91,6 +95,7 @@ class ColorCycleTemplate:
             strip.show()
             current_cycle = 0
             next_time = time.time()
+            end_time = next_time + self.duration_s if self.duration_s > 0 else None
             while True:  # Loop forever
                 for current_step in range (self.num_steps_per_cycle):
                     need_repaint = sum((
@@ -101,11 +106,14 @@ class ColorCycleTemplate:
                     next_time += self.pause_value
                     if need_repaint:
                         strip.show() # repaint if required
+                    if end_time and time.time() > end_time:
+                        break
+                if end_time and time.time() > end_time:
+                    break
                 time.sleep(max(0, next_time-time.time())) # Final hold
                 current_cycle += 1
-                if self.num_cycles != -1:
-                    if current_cycle >= self.num_cycles:
-                        break
+                if self.num_cycles != -1 and current_cycle >= self.num_cycles:
+                    break
             # Finished, cleanup everything
             self.cleanup(strip)
 
