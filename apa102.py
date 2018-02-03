@@ -17,6 +17,7 @@ Pixel.GREEN = Pixel(0, 255, 0, 100)
 Pixel.CYAN = Pixel(0, 255, 255, 100)
 Pixel.BLUE = Pixel(0, 0, 255, 100)
 Pixel.MAGENTA = Pixel(255, 0, 255, 100)
+Pixel.BLACK = Pixel(0, 0, 0, 0)
 Pixel.WHITE = Pixel(255, 255, 255, 100)
 
 class APA102Cmd:
