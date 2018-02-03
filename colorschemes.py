@@ -1,6 +1,7 @@
 """This module contains a few concrete colour cycles to play with"""
 
 from math import ceil
+from random import randint
 
 from colorcycletemplate import ColorCycleTemplate
 from apa102 import Pixel
@@ -139,5 +140,51 @@ def create_larson(start, end, width):
                 strip[i] = Pixel(255, 0, 0, bright)
             bright -= b_step
 
+        return 1 # Repaint
+    return update
+
+def create_fire(start, end):
+    """Return a fire updater."""
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        r, g, b = 255, 96, 12
+        for i in range(start, end+1):
+            flicker = randint(0, 40)
+            strip[i] = Pixel(r-flicker, g-flicker, b-flicker, 100)
+        return 1 # Repaint
+    return update
+
+def create_red_alert(start, end):
+    """Return a rising red updater."""
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        brightness = round(100 * current_step / num_steps_per_cycle)
+        lamp = Pixel(255, 0, 0, brightness)
+        for i in range(start, end+1):
+            strip[i] = lamp
+        return 1 # Repaint
+    return update
+
+def create_swipe(start, end):
+    """Return an updater that will shift all effects in, one pixel per cycle. Add
+    this updater after other effects.
+    Params:
+        start, end - Inclusive ranges. Will swipe right to left if start > end.
+    """
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        shift_max = abs(end-start)
+        shift = shift_max-current_step
+        if shift <= 0:
+            return 0
+        if start < end:
+            for i in range(start, end+1):
+                strip[i] = strip[i+shift] if i+shift <= end else Pixel.BLACK
+        else:
+            for i in range(start, end-1, -1):
+                strip[i] = strip[i-shift] if i-shift >= end else Pixel.BLACK
         return 1 # Repaint
     return update

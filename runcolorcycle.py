@@ -41,8 +41,11 @@ if __name__ == '__main__':
 
     # One slow trip through the rainbow
     print('One slow trip through the rainbow')
-    MY_CYCLE = colorschemes.Rainbow(num_steps_per_cycle=255, num_cycles=1,
-                                    **options)
+    MY_CYCLE = ColorCycleTemplate(num_steps_per_cycle=255, num_cycles=1,
+                                  **options)
+    rainbow = colorschemes.Rainbow(**options)
+    MY_CYCLE.append_updater(rainbow.update)
+    MY_CYCLE.append_updater(colorschemes.create_swipe(args.num_led-1, 0))
     MY_CYCLE.start()
 
     # Five quick trips through the rainbow
@@ -51,12 +54,17 @@ if __name__ == '__main__':
                                        **options)
     MY_CYCLE.start()
 
-    print('Two Larson Scanners')
-    MY_CYCLE = ColorCycleTemplate(pause_value=0.02, num_steps_per_cycle=300, num_cycles=1,
+    print('A Larson Scanner, a fire, and red alert')
+    MY_CYCLE = ColorCycleTemplate(pause_value=0.02, num_steps_per_cycle=60, num_cycles=5,
                                   **options)
     MY_CYCLE.append_updater(colorschemes.blank_updater) # The scanners don't assume blank-to-start
-    MY_CYCLE.append_updater(colorschemes.create_larson(0, args.num_led // 2 - 1, width=8))
-    MY_CYCLE.append_updater(colorschemes.create_larson(args.num_led // 2, args.num_led - 1, width=8))
+    num_updaters = 3
+    sec_width = args.num_led // num_updaters
+    sec_ranges = list(zip(range(0, args.num_led, sec_width), range(sec_width-1, args.num_led, sec_width)))
+    sec_ranges[-1] = (sec_ranges[-1][0], args.num_led-1) # Make sure we get them all
+    MY_CYCLE.append_updater(colorschemes.create_larson(*sec_ranges.pop(0), width=8))
+    MY_CYCLE.append_updater(colorschemes.create_fire(*sec_ranges.pop(0)))
+    MY_CYCLE.append_updater(colorschemes.create_red_alert(*sec_ranges.pop(0)))
     MY_CYCLE.start()
 
     print('Finished the test')
