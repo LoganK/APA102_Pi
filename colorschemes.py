@@ -72,7 +72,7 @@ class Solid(ColorCycleTemplate):
 
     def init(self, strip, num_led):
         for led in range(0, num_led):
-            strip.set_pixel_rgb(led,0xFFFFFF,5) # Paint 5% white
+            strip.set_pixel_rgb(led,0xFFFFFF,15) # Paint 15% white
 
     def update(self, strip, num_led, num_steps_per_cycle, current_step,
                current_cycle):

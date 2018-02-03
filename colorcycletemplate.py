@@ -17,7 +17,7 @@ class ColorCycleTemplate:
                  pause_value = 0,
                  num_steps_per_cycle = 100,
                  num_cycles = -1,
-                 global_brightness = 255,
+                 global_brightness = 100,
                  order = 'rbg',
                  mosi = 10, sclk = 11):
         self.num_led = num_led # The number of LEDs in the strip
