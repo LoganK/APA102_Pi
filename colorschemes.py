@@ -188,3 +188,80 @@ def create_swipe(start, end):
                 strip[i] = strip[i-shift] if i-shift >= end else Pixel.BLACK
         return 1 # Repaint
     return update
+
+def create_morse(start, end, color, msg):
+    """Crawl a Morse code message across the strand.
+    Params:
+      color - A Pixel to use as the color.
+    """
+
+    morse = {
+        'A': '.-',
+        'B': '-...',
+        'C': '-.-.',
+        'D': '-..',
+        'E': '.',
+        'F': '..-.',
+        'G': '--.',
+        'H': '....',
+        'I': '..',
+        'J': '.---',
+        'K': '-.-',
+        'L': '.-..',
+        'M': '--',
+        'N': '-.',
+        'O': '---',
+        'P': '.--.',
+        'Q': '--.-',
+        'R': '.-.',
+        'S': '...',
+        'T': '-',
+        'U': '..-',
+        'V': '...-',
+        'W': '.--',
+        'X': '-..-',
+        'Y': '-.--',
+        'Z': '--..',
+        '1': '.----',
+        '2': '..---',
+        '3': '...--',
+        '4': '....-',
+        '5': '.....',
+        '6': '-....',
+        '7': '--...',
+        '8': '---..',
+        '9': '----.',
+        '0': '-----',
+        '.': '.-.-.-',
+        ',': '--..--',
+        ':': '---...',
+        '!': '-.-.--',
+        '?': '..--..',
+        '\'': '.----.',
+        '-': '-....-',
+        '/': '-..-.',
+        '@': '.--.-.',
+        '=': '-...-',
+        ' ': ' ',
+        }
+    dots = {
+        '.': '.',
+        '-': '...',
+        ' ': ' ',
+    }
+
+    # Convert Morse to dots only.
+    morse_lamp = dict([(k, '  '.join([dots[c] for c in morse[k]])) for k in morse])
+
+    # Convert the message and space it out a bit more.
+    msg_morse = '    '.join(morse_lamp[c] for c in msg.upper()) + '  ' * 15
+    #print(msg_morse)
+
+    msg_lamp = [color if c == '.' else Pixel.BLACK for c in msg_morse]
+
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        for i in range(start, end+1):
+            strip[i] = msg_lamp[(i+current_step)%len(msg_lamp)]
+        return 1 # Repaint
+    return update

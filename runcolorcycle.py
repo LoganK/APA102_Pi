@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sample script to run a few colour tests on the strip."""
+from apa102 import Pixel
 import argparse
 from colorcycletemplate import ColorCycleTemplate
 import colorschemes
@@ -65,6 +66,12 @@ if __name__ == '__main__':
     MY_CYCLE.append_updater(colorschemes.create_larson(*sec_ranges.pop(0), width=8))
     MY_CYCLE.append_updater(colorschemes.create_fire(*sec_ranges.pop(0)))
     MY_CYCLE.append_updater(colorschemes.create_red_alert(*sec_ranges.pop(0)))
+    MY_CYCLE.start()
+
+    print('Morse codes')
+    MY_CYCLE = ColorCycleTemplate(pause_value=0.2, num_steps_per_cycle=60, num_cycles=2,
+                                  **options)
+    MY_CYCLE.append_updater(colorschemes.create_morse(0, args.num_led-1, (153, 23, 255), 'pfy!'))
     MY_CYCLE.start()
 
     print('Finished the test')
