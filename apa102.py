@@ -143,7 +143,7 @@ class APA102:
         self.led_order = led_order
         self._assert_led_order()
 
-        if mosi is None: # Debug output
+        if mosi is None or mosi < 0: # Debug output
             # Reset leds_seq so the terminal output makes sense.
             self.led_order = None
             self.spi = debug.DummySPI(rgb_map)
