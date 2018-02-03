@@ -113,3 +113,31 @@ def blank_updater(strip, num_led, num_steps_per_cycle, current_step,
 
     strip.blank()
     return 1 # Repaint
+
+
+def create_larson(start, end, width):
+    """ Return a function that will update strip with the next Larson data.
+    Params:
+        start, end - Both inclusive.
+    """
+    b_step = ceil(100 // width)
+    led = start - 1
+    direction = 1
+    def update(strip, num_led, num_steps_per_cycle, current_step,
+               current_cycle):
+        nonlocal width, b_step, led, direction
+        led += direction
+        if led == end + width:
+            direction = -1
+            led = end
+        if led == start - width:
+            direction = 1
+            led = start
+        bright = 100
+        for i in range(led, led + (-direction * width), -direction):
+            if start <= i <= end:
+                strip[i] = Pixel(255, 0, 0, bright)
+            bright -= b_step
+
+        return 1 # Repaint
+    return update

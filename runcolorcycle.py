@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Sample script to run a few colour tests on the strip."""
 import argparse
+from colorcycletemplate import ColorCycleTemplate
 import colorschemes
 
 if __name__ == '__main__':
@@ -48,6 +49,14 @@ if __name__ == '__main__':
     print('Five quick trips through the rainbow')
     MY_CYCLE = colorschemes.TheaterChase(pause_value=0.04, num_steps_per_cycle=35, num_cycles=5,
                                        **options)
+    MY_CYCLE.start()
+
+    print('Two Larson Scanners')
+    MY_CYCLE = ColorCycleTemplate(pause_value=0.02, num_steps_per_cycle=300, num_cycles=1,
+                                  **options)
+    MY_CYCLE.append_updater(colorschemes.blank_updater) # The scanners don't assume blank-to-start
+    MY_CYCLE.append_updater(colorschemes.create_larson(0, args.num_led // 2 - 1, width=8))
+    MY_CYCLE.append_updater(colorschemes.create_larson(args.num_led // 2, args.num_led - 1, width=8))
     MY_CYCLE.start()
 
     print('Finished the test')
