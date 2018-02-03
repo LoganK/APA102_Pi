@@ -1,6 +1,9 @@
 """This module contains a few concrete colour cycles to play with"""
 
+from math import ceil
+
 from colorcycletemplate import ColorCycleTemplate
+from apa102 import Pixel
 
 class StrandTest(ColorCycleTemplate):
     """Runs a simple strand test (9 LEDs wander through the strip)."""
@@ -8,23 +11,23 @@ class StrandTest(ColorCycleTemplate):
     color = None
 
     def init(self, strip, num_led):
-        self.color = 0x000000  # Initialize with black
+        self.colors = [Pixel.RED, Pixel.GREEN, Pixel.BLUE]
+        self.len = min(9, ceil(num_led / 10))
 
     def update(self, strip, num_led, num_steps_per_cycle, current_step,
                current_cycle):
-        # One cycle = The 9 Test-LEDs wander through numStepsPerCycle LEDs.
-        if current_step == 0:
-            self.color >>= 8  # Red->green->blue->black
-        if self.color == 0:
-            self.color = 0xFF0000  # If black, reset to red
-        len = 9
-        if num_led - 1 < len:
-            len = num_led - 1 
-        # The head pixel that will be turned on in this cycle
-        head = (current_step + len) % num_steps_per_cycle
-        tail = current_step # The tail pixel that will be turned off
-        strip.set_pixel_rgb(head, self.color)  # Paint head
-        strip.set_pixel_rgb(tail, 0)  # Clear tail
+        # Cycle colors whenever we start a new cycle.
+        if current_step == 0 and current_cycle != 0:
+            self.colors = self.colors[1:] + self.colors[0:1]
+
+        # Head is always the current item, tail is the left-most light (which
+        # wraps around at the beginning).
+        head = current_step
+        tail = (current_step - self.len) % num_steps_per_cycle
+
+        strip[head] = self.colors[0]  # Paint head
+        if head != tail:
+            strip[tail] = Pixel.BLACK
 
         return 1 # Repaint is necessary
 
@@ -79,6 +82,7 @@ class Solid(ColorCycleTemplate):
 
 class Rainbow(ColorCycleTemplate):
     """Paints a rainbow effect across the entire strip."""
+
     def update(self, strip, num_led, num_steps_per_cycle, current_step,
                current_cycle):
         # One cycle = One trip through the color wheel, 0..254
