@@ -133,6 +133,8 @@ class APA102:
                  order='rgb',
                  mosi=10,
                  sclk=11,
+                 bus=0,
+                 device=0,
                  max_speed_hz=8000000,
                  led_order=None):
         """Initializes the library."""
@@ -151,7 +153,7 @@ class APA102:
             import Adafruit_GPIO.SPI as SPI
             # MOSI 10 and SCLK 11 is hardware SPI, which needs to be set-up differently
             if mosi == 10 and sclk == 11:
-                self.spi = SPI.SpiDev(0, 0, max_speed_hz) # Bus 0, chip select 0
+                self.spi = SPI.SpiDev(bus, device, max_speed_hz)
             else:
                 import Adafruit_GPIO as GPIO
                 self.spi = SPI.BitBang(GPIO.get_platform_gpio(), sclk, mosi)
