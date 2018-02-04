@@ -2,6 +2,7 @@
 from math import ceil
 from collections import namedtuple
 import itertools
+from types import MethodType
 
 import debug
 
@@ -36,18 +37,33 @@ class APA102Cmd:
       ret = clamp(ceil(pct * APA102Cmd.BRIGHTNESS / 100.0), 0, APA102Cmd.BRIGHTNESS)
       return ret
 
-  def __init__(self, rgb_map, max_brightness):
-    self.rgb_map = rgb_map
-    self.max_brightness = max_brightness
+  def bright_cmd(self, pixel):
+      return Pixel(pixel.red, pixel.green, pixel.blue,
+                   APA102Cmd.bright_percent(round(pixel.brightness * self.max_brightness / 100)))
+
+  def bright_color(self, pixel):
+      scale = (pixel.brightness * self.max_brightness / 100) / 100
+      return Pixel(*(round(n*scale) for n in pixel[0:3]), brightness=APA102Cmd.BRIGHTNESS)
+
+  def __init__(self, rgb_map, max_brightness, bright_rgb=True):
+      """Set some global options for our LED type.
+      Params:
+          bright_rgb - If True, scale the brightness by adjusting the RGB values
+              instead of the brightness command. This may result in less visible
+              flicker (19.2kHz vs 582Hz). See
+              https://cpldcpu.wordpress.com/2014/08/27/apa102/
+      """
+      self.rgb_map = rgb_map
+      self.max_brightness = max_brightness
+      self.bright = MethodType(APA102Cmd.bright_color if bright_rgb else APA102Cmd.bright_cmd, self)
 
   def to_cmd(self, pixel):
     if not isinstance(pixel, Pixel):
       raise TypeError("expected Pixel")
 
-    brightness = APA102Cmd.bright_percent(round(pixel.brightness * self.max_brightness / 100))
-
+    pixel = self.bright(pixel)
     # LED startframe is three "1" bits, followed by 5 brightness bits
-    ledstart = (brightness & 0b00011111) | self.LED_START
+    ledstart = (pixel.brightness & 0b00011111) | self.LED_START
 
     cmd = [ledstart, 0, 0, 0]
 
