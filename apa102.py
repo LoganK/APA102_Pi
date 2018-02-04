@@ -1,6 +1,7 @@
 """This is the main driver module for APA102 LEDs"""
 from math import ceil
 from collections import namedtuple
+import functools
 import itertools
 from types import MethodType
 
@@ -23,7 +24,11 @@ Pixel.WHITE = Pixel(255, 255, 255, 100)
 
 def clamp(val, min_val, max_val):
     """Return the value clamped within the range [min_val, max_val]."""
-    return max(min_val, min(max_val, val))
+    if val < min_val:
+        val = min_val
+    elif val > max_val:
+        val = max_val
+    return val
 
 class APA102Cmd:
   """Helper class to convert Pixel instance to an APA102 command.
@@ -42,8 +47,8 @@ class APA102Cmd:
                    APA102Cmd.bright_percent(round(pixel.brightness * self.max_brightness / 100)))
 
   def bright_color(self, pixel):
-      scale = (pixel.brightness * self.max_brightness / 100) / 100
-      return Pixel(*(round(n*scale) for n in pixel[0:3]), brightness=APA102Cmd.BRIGHTNESS)
+      scale = pixel.brightness * self.max_brightness / 100 / 100
+      return Pixel(*[round(n*scale) for n in pixel[0:3]], brightness=APA102Cmd.BRIGHTNESS)
 
   def __init__(self, rgb_map, max_brightness, bright_rgb=True):
       """Set some global options for our LED type.
@@ -57,13 +62,14 @@ class APA102Cmd:
       self.max_brightness = max_brightness
       self.bright = MethodType(APA102Cmd.bright_color if bright_rgb else APA102Cmd.bright_cmd, self)
 
+  @functools.lru_cache(maxsize=1024)
   def to_cmd(self, pixel):
-    if not isinstance(pixel, Pixel):
-      raise TypeError("expected Pixel")
+    ## if not isinstance(pixel, Pixel):
+    ##  raise TypeError("expected Pixel")
 
     pixel = self.bright(pixel)
     # LED startframe is three "1" bits, followed by 5 brightness bits
-    ledstart = (pixel.brightness & 0b00011111) | self.LED_START
+    ledstart = pixel.brightness | self.LED_START
 
     cmd = [ledstart, 0, 0, 0]
 
