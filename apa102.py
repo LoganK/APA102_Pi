@@ -166,6 +166,7 @@ class APA102:
         self.leds = [Pixel.BLACK] * num_led
         self.led_order = led_order
         self._assert_led_order()
+        self.BRIGHTNESS = APA102Cmd.BRIGHTNESS
 
         if mosi is None or mosi < 0: # Debug output
             # Reset leds_seq so the terminal output makes sense.
