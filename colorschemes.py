@@ -73,16 +73,10 @@ class Solid(ColorCycleTemplate):
 
     def update(self, strip, num_led, num_steps_per_cycle, current_step,
                current_cycle):
-        if (current_step == 0):
-            stripcolour = 0xFFFFFF
-        if (current_step == 1):
-            stripcolour = 0xFF0000
-        if (current_step == 2):
-            stripcolour = 0x00FF00
-        if (current_step == 3):
-            stripcolour = 0x0000FF
+        colours = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF]
+        colour = colours[current_step % len(colours)]
         for led in range(0, num_led):
-            strip.set_pixel_rgb(led,stripcolour,5) # Paint 5% white  
+            strip.set_pixel_rgb(led,colour,5) # Paint 5% white
         return 1
 
 

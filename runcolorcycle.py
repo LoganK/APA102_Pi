@@ -27,7 +27,7 @@ if __name__ == '__main__':
     if 0 in args.patterns:
         # One Cycle with one step and a pause of three seconds. Hence three seconds of white light
         print('Three Seconds of white light')
-        MY_CYCLE = colorschemes.Solid(duration_s=3, pause_value=1,
+        MY_CYCLE = colorschemes.Solid(duration_s=4, pause_value=1,
                                       **options)
         MY_CYCLE.start()
 
