@@ -4,6 +4,7 @@ import apa102
 
 class ColorCycleTemplate:
     """This class is the basis of all color cycles.
+    This file is usually used "as is" and not being changed.
 
     A specific color cycle must subclass this template, and implement at least the
     'update' method.
@@ -30,8 +31,8 @@ class ColorCycleTemplate:
         self.global_brightness = global_brightness # Brightness of the strip
         self.duration_s = duration_s
         self.order = order # Strip colour ordering
-        self.mosi = mosi
-        self.sclk = sclk
+        self.mosi = mosi # Master out slave in of the SPI protocol
+        self.sclk = sclk # Clock line of the SPI protocol
         self.updaters = []
 
     def init(self, strip, num_led):
