@@ -165,13 +165,11 @@ class APA102:
         rgb_map = RGB_MAP[order.lower()]
         self.pixel_cmd = APA102Cmd(rgb_map, global_brightness)
         self.leds = [Pixel.BLACK] * num_led
-        self.led_order = led_order
+        self.led_order = led_order or range(num_led)
         self._assert_led_order()
         self.BRIGHTNESS = APA102Cmd.BRIGHTNESS
 
         if mosi is None or mosi < 0: # Debug output
-            # Reset leds_seq so the terminal output makes sense.
-            self.led_order = None
             self.spi = debug.DummySPI(rgb_map)
         else:
             import Adafruit_GPIO.SPI as SPI
@@ -185,7 +183,7 @@ class APA102:
     def _assert_led_order(self):
         """Raise a ValueError if the given led_order isn't correct."""
 
-        found = set(self.order_iter())
+        found = set(self.led_order)
         need = set(range(len(self.leds)))
         if found != need:
             raise ValueError('led_order has gap and/or extra: {}'.format(need.symmetric_difference(found)))
@@ -307,27 +305,12 @@ class APA102:
         self.leds = self.leds[cutoff:] + self.leds[:cutoff]
 
 
-    def order_iter(self):
-        """Convert a user sequence of led_order tuples to a linear order."""
-
-        if self.led_order is None:
-            return range(self.num_led)
-
-        order = []
-        for s in led_order:
-            if s[0] < s[1]:
-                order.append(range(s[0], s[1] + 1, 1))
-            else:
-                order.append(range(s[1], s[0] - 1, -1))
-
-        return itertools.chain(*order)
-
     def show(self):
         """Sends the content of the pixel buffer to the strip."""
 
         cmds = self.clock_start_frame()
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
-        for led_i in self.order_iter():
+        for led_i in self.led_order:
             cmds.extend(self.pixel_cmd.to_cmd(self.leds[led_i]))
         cmds.extend(self.clock_end_frame())
 
