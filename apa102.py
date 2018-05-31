@@ -140,14 +140,6 @@ class APA102:
     information is still with person 2. Essentially the driver sends additional
     zeroes to LED 1 as long as it takes for the last color frame to make it
     down the line to the last LED.
-
-    Params:
-      led_order - If set, allow the use of a logical order that doesn't match
-        the physical strip given as a sequence of (first, last) ranges. As a
-        compex example, if your strips were connected as:
-        5-6-7-8-0-1-2-3-12-11-10-9
-        then you could set led_order=((5, 8), (0, 3), (12, 9))
-        Tip: runcolorcycle.py can be useful to verify you have these values correct.
     """
     def __init__(self,
                  num_led,
@@ -159,7 +151,16 @@ class APA102:
                  device=0,
                  max_speed_hz=8000000,
                  led_order=None):
-        """Initializes the library."""
+        """Initializes the library.
+
+        Params:
+          led_order - If set, allow the use of a logical order that doesn't match
+            the physical strip given as a sequence of (first, last) ranges. As a
+            complex example, if your strips were connected as:
+            5-6-7-8-0-1-2-3-12-11-10-9
+            then you could set led_order=((5, 8), (0, 3), (12, 9))
+            Tip: runcolorcycle.py can be useful to verify you have these values correct.
+        """
 
         rgb_map = RGB_MAP[order.lower()]
         self.pixel_cmd = APA102Cmd(rgb_map, global_brightness)
